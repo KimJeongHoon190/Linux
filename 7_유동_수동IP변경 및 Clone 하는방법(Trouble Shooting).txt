@@ -1,0 +1,108 @@
+Linux 1		= 자동 IP 
+Linux 2		= 수동 IP = 많은 옵션을 외워야 하겠죠?
+---------------------------------------------------
+1. GUI 로 자동에서 수동으로 바꿔볼께요
+
+inet addr:192.168.1.10
+HWaddr 00:0C:29:FA:9E:91
+
+------------------------------------------------------------
+ifconfig eth0 			IP확인 명령어
+route				Gateway 확인 명령어
+cat -n /etc/resolv.conf		DNS 확인 파일
+=========================================================================
+2. TUI 로 자동에서 수동으로 바꿀꺼에요                                  우리 집 컴퓨터는 192.168.111.0
+
+vi /etc/sysconfig/network-scripts/ifcfg-eth0
+** 랜카드 설정 = IP Address 수정 
+
+유동 IP			고정 IP
+DEVICE=eth0		DEVICE=eth0
+ONBOOT=yes		ONBOOT=yes
+BOOTPROTO=dhcp		BOOTPROTO=static
+			IPADDR=192.168.1.10
+			NETMASK=255.255.255.0
+			GATEWAY=192.168.1.2
+			DNS1=168.126.63.1 
+참고 168.126.63.1 = kns.kornet.net  KT  
+			
+데몬 꼭 돌리기 !!
+/etc/rc.d/init.d/network restart
+=========================================================================
+Linux 2부터는 Server 1대 / Client 1대  이렇게 2대의 컴퓨터를 가상으로 설치 하고 진행한다.
+
+Clone = 복제
+192.168.1.10						192.168.1.20
+Server							Client
+eth0							     eth0
+IP = 192.168.1.10					IP = 192.168.1.10
+MAC = 00:0C:29:FA:9E:91			     MAC = 00:0C:29:FA:9E:91
+							맥 주소 충돌시 리눅스는 이를 감지하고 새로운 맥 주소를 생성시킨다
+							eth1 로 자동으로 생성된다 
+							eth0 으로 어떻게 초기화 시킬까? 이게 오늘 과제!!!
+							00:0C:29:21:BF:C8  = 새로운 맥주소
+
+
+** 랜카드 맥주소 충돌 났을때 eth0 -> eth1 로 생성이 된다  어떻게 eth0 으로 초기화 할까?
+>>>
+
+1. 일단은 클론 부터 갑니다
+   클론은 서버가 파워 OFF 일때만 된다!!!
+   상단의 탭을 우클릭 - manage - clone - 다음 - 다음 - create a full clone - 버츄얼 머신 이름(kgitbank_Client)
+    / 자신의 개인폴더 하위의 vmos 하위에 새폴더 생성(폴더 이름은 kgitbank_Client) - 마침
+
+2. Server / Client 둘다 Start !!
+   Server에 가셔서 ifconfig eth0 / route / cat -n /etc/resolv.conf 확인 
+   Client에 가셔서 ifconfig eth0 / route / cat -n /etc/resolv.conf 확인
+			   └> 에러 뜨면서 안나온다 당연한일!! eth1 로 입력해본다 = 바뀐걸 알 수 있다
+
+3. vi /etc/udev/rules.d/70-persistent-net.rules = 맥 주소 생성 파일로 가셔서
+   무조건 파일은 순차적 삽입입니다.  그말 즉슨, 중간에 있는 맥주소 내용이 Old(오래된거)  지우시고 = 3dd
+   파일 맨 아래에 위치한 내용 = 새로운 맥주소  끝으로 이동하셔서 eth1 => eth0 으로 고치세요 
+
+4. (3번 파일 안에서)
+     :sp /etc/sysconfig/network-scripts/ifcfg-eth0 하셔서 화면 이분할 하세요  (sp : 수평 분할)
+    IP 스크립트 파일에 IP내용을 192.168.1.20 으로 고치세요 
+    IP 스크립트 파일에 MAC내용을 지우세요 
+    MAC 생성 파일에 있는 새로운 MAC 주소를 복하하셔서  IP 스크립트 파일에 MAC내용에 붙여넣기 하세요 
+    (분할된 화면 사이를 이동하려면 ctrl + w)
+    복붙할 때 v키 누르고 방향키 눌러서 원하는 만큼간다 -> 그리고 yy키 눌러서 복사완료 -> p눌러서 붙여넣기
+
+5. /etc/rc.d/init.d/network restart  = 이거 안돌아 갑니다
+   ? => 레지스터리 값을 변경시 컴퓨터 재시작 해야 되기 때문
+
+
+6. 재부팅
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

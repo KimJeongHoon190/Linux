@@ -1,0 +1,14 @@
+      1 DEVICE=eth0
+      2 TYPE=Ethernet
+      3 UUID=ddddfcae-fed1-4617-9b35-fe35ba45be06
+      4 ONBOOT=no
+      5 NM_CONTROLLED=yes
+      6 BOOTPROTO=dhcp
+      7 DEFROUTE=yes
+      8 IPV4_FAILURE_FATAL=yes
+      9 IPV6INIT=no
+     10 NAME="System eth0"
+     11 HWADDR=00:0C:29:ED:62:F8
+     12 PEERDNS=yes
+     13 PEERROUTES=yes
+     14 LAST_CONNECT=1594809044

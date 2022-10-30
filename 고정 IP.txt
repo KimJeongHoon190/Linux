@@ -1,0 +1,16 @@
+      1 DEVICE=eth0
+      2 TYPE=Ethernet
+      3 UUID=ddddfcae-fed1-4617-9b35-fe35ba45be06
+*      4 ONBOOT=yes
+      5 NM_CONTROLLED=yes
+*      6 BOOTPROTO=none(or static)
+      7 HWADDR=00:0C:29:ED:62:F8
+*      8 IPADDR=192.168.1.10
+*      9 PREFIX=24
+*     10 GATEWAY=192.168.1.2
+*     11 DNS1=168.126.63.1
+     12 DEFROUTE=yes
+     13 IPV4_FAILURE_FATAL=yes
+     14 IPV6INIT=no
+     15 NAME="System eth0"
+     16 LAST_CONNECT=1594807844
