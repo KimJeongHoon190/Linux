@@ -1,0 +1,63 @@
+d ★Xinetd(telnet) 구축 순서
+1. 패키지 설치 확인
+	rpm -qa |grep xinetd
+2. 패키지 설치
+            패키지 안에 들어가야 함  cd /media/CentOS_6.8_Final/Packages  서버,클라이언트 둘다
+            이거 안되면 nat 살펴봐라 connected
+	rpm -ivh xinetd-2.3.14-39.el6_4.i686.rpm // xinetd 서버 프로그램 : kgitbank_server 에다 깔기 
+	rpm -ivh telnet-server-0.17-48.el6.i686.rpm //telnet 서버 프로그램 : kgitbank_server에다 깔기 
+	rpm -ivh telnet-0.17-48.el6.i686.rpm // telnet 클라이언트 프로그램 : kgitbank_client에다 깔기
+3. 데몬 실행
+	/etc/rc.d/init.d/xinetd restart	                  이 밑의 것들(3,4)은 kgitbank_server에서만 한다.
+4. 방화벽
+	a.SElinux= /etc/selinux/config  <===수정후 반드시 재부팅 reboot
+		#SELINUX=enforcing 
+		SELINUX=disabled
+ 
+	b.firewall= system-config-firewall    (netstat -lntup)    netstat : 네트워크 접속, 라우팅 테이블, 네트워크 인터페이스의 통계 정보를 보여주는 도구 
+		그 외의 포트 : 추가 23 tcp 
+
+cd /etc/xinetd.d/ 로 가셔서
+vi telnet 을 수정 합니다.
+
+#       unencrypted username/password pairs for authentication.
+service telnet
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /usr/sbin/in.telnetd
+        log_on_failure  += USERID
+        disable         = yes     =>  멀로 고친다?  no로 고친다  고친 다음 데몬 돌립니다.
+}
+
+#/etc/rc.d/init.d/xinetd restart   데몬 재시작 ~
+netstat -lntup | grep xinetd
+
+클라이언트에서 telnet 192.168.1.10  ( or 192.168.111.10)  --> 그 전에 telnet client 프로그램 깔아야됨 
+root는 안됨 hedgehoon 가능
+=============================================================================================== 
+windows		┌> 실행창 가셔서 appwiz.cpl 바로 갑니다 
+제어판 => 프로그램 추가 제거 =>windows 기능 사용/사용 안함 => 텔넷 클라이언트 체크
+
+
+
+그러면 win7에서  리눅스 서버로 telnet 완성
+	linux_client에서 리눅스 서버로 telnet 완성 
+root 는 막혀 있습니다  따라서 일반 계정인 hedgehoon 로 로그인 해주세요
+
+cmd 켜서 telnet 192.168.111.10
+
+
+
+
+
+
+
+
+
+
+
+
+
