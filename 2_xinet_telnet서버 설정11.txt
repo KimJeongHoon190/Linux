@@ -1,0 +1,73 @@
+vi /etc/xinetd.conf 부모님 파일   --> 전체 통제
+-------------------서비스 설정-----------------
+defaults
+{
+# The next two items are intended to be a quick access place to
+# temporarily enable or disable services. ***서비스1개당 1개의 프로그램사용***
+#
+#       enabled         =		서비스 활성 //
+#       disabled        =		서비스 비활성
+
+# Define general logging characteristics.
+        log_type        = SYSLOG daemon info
+        log_on_failure  = HOST				 --> xinet 로그온 실패시 IP를 남기겠다
+        log_on_success  = PID HOST DURATION EXIT
+----------------접속 설정---------------------                      
+# Define access restriction defaults
+#
+#       no_access       =
+        no_access       = 192.168.1.1   접속거부/etc:허가              여기서 192.168.1.20 접속거부하면 클라이언트로 안됨
+#       only_from       =		접속허가/etc:거부                  만약 호스트가 아니라 대역대를 허가/거부할 거면 192.168.10.0 이렇게 0 넣어서 적기
+#       max_load        = 0		서버부하
+        cps             = 50 10		1초당 접속횟수(50) 시간제한(10) // count permit seconds --> 해킹막는 것
+        instances       = 50		총접속허용수                                            윈도우는 secpol.msc
+        per_source      = 10		출발지ip한개당 동시접속자수      
+}      허용과 거부 정책이 부딪혔을 땐 거부가 우선
+-------------서버적재 장소------------------------                        
+includedir /etc/xinetd.d		xinet로 돌릴 서버파일 적재소
+
+
+cd /etc/xinetd.d          --> 자식 파일 중 telnet  -- > access_times만 여기에 적어야 효력이 있다  --> 여기서 no_access도 사용 가능
+vi telnet // 텔넷의 설정파일
+                            
+# default: on
+# description: The telnet server serves telnet sessions; it uses \
+#       unencrypted username/password pairs for authentication.
+service telnet
+{
+        flags           = REUSE		//서비스에 관련된 소켓을 그대로 사용
+        socket_type     = stream	//stream(tcp),dgram(udp)
+        wait            = no		//no:프로세스를 생성하여 처리(대기X)
+					         //yes:프로세스를 생성하여 처리(대기O)
+        user            = root		//해당 데몬을 시작할 유저
+        server          = /usr/sbin/in.telnetd //실제 서버 프로그램의 위치
+        log_on_failure  += USERID	// telnet  로그온 실패시 계정명을 남기겠다 , xinetd 실패와 다르다
+	access_times	= 0:00-23:55	// 허용할 시간대   :! rdate -s time.bora.net
+
+	only_from	= ip/대역	// 허용할 IP/대역
+        disable         = yes		// no 로 해야 텔넷 연결
+}
+-------------------------------------------------------------------------------
+[root@kgitbank xinetd.d]# /etc/rc.d/init.d/xinetd restart  // 데몬 돌려주시고
+xinetd 를 정지 중:                                         [  OK  ]
+xinetd (을)를 시작 중:                                     [  OK  ]
+[root@kgitbank xinetd.d]# netstat -lntup |grep xinet // port 열렸는지 확인
+tcp        0      0 :::23                       :::*                        LISTEN      6258/xinetd
+
+클라이언트로 가서
+[root@kgitbank Packages]# telnet 192.168.1.128
+ID / Password 입력 후 로그인 확인
+======================================================================================
+문제 ~) xinet 하나하나 옵션들 실습
+
+telnet 서버 구성 
+
+1. 접근 허용할 주소 : 192.168.1.20/24        /etc/xinetd.d 파일안에서 only_from = 192.168.111.20 이렇게 적어 !
+
+2. 접근을 허용할 시간 : AM 9:00 부터 저녁 10:00 까지
+
+3. 총 접속 허용 수 : 4 
+
+4. Dos 공격에 대비하여 1초에 2회 이상의 접속 발생시 60초 동안 새로운 접속금지
+
+5. 접근 허용하지 않을 주소 : 192.168.1.1/24
