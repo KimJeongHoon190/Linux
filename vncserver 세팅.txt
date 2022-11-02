@@ -1,0 +1,91 @@
+https://secretpoten.tistory.com/148 : 실습 참조
+------------------------------------------------------
+
+A -> A	Local Access 내 컴터 내가 접속
+A -> B	Network Access : Remote Service 남이 내 컴 접속 (푸티)
+
+원격 서비스 = A -> B
+TUI	(linux = windows공통)    그림이 없다
+Telnet	일반 통신	port 23 TCP   
+SSH	보안 통신 	port 22 TCP 
+	RSA 	공개키 암호화 = 전부 똑같다 
+		개인키 복호화 = 개인마다 다르다
+======================================
+GUI     
+Remote DeskTop	일반/보안통신	port 3389 TCP	 	Windows전용    mstsc : 컨트롤 + R
+VNC		일반/보안통신	port 5900/6000 TCP	OS를 가리지 않는다 
+(Virtual Network Computing)               통신포트   그래픽포트(옛날버전용)(5점대 리눅스)
+==============================================================================
+VNC  서비스 ?                 그림을 보면서 하기         계정 하나 당 포트 하나 세션(5계층) 하나
+Virtual Network Computing                                           종료할 떄 검색기록 삭제, 파일 다지우기
+리모트에 있는 시스템에 원격으로 접속하여 관리 할 수 있는 프로그램
+오픈소스(공짜)로써 OS 를 따지지 않는다.
+------------------------------------------------------------------------------
+VNC 특징 및 장점
+1. 설치가 간편하여 특별한 설정 없이 이용이 가능
+2. 원격 접속이 아닌 내앞에 시스템 있는 것과 같은 해상도를 제공
+3. 대부분의 운영체제에서 사용이 가능
+------------------------------------------------------------------------------
+#/etc/rc.d/init.d/vncserver restart  // 데몬= 서비스만 동작함  >> 패키지 이름은 tiger
+					     필요시 vncpasswd 명령어로 암호생성
+								(6자리 이상)
+#vncserver // 서비스 동작 및 VNC Server 암호생성도 같이 할 수 있음
+------------------------------------------------------------------------------
+vncserver 세팅                                                           ls -ld ~/.vnc        su user1
+
+패키지 확인 	rpm -qa |grep vnc
+
+패키지 설치 	rpm -ivh tigervnc-server-1.1.0-18.el6.x86_64.rpm (서버프로그램)   
+		rpm -ivh tigervnc-1.1.0-18.el6.x86_64.rpm (클라이언트 프로그램)
+
+1. vncserver (세션실행) = port 1 = account  = 세션 1    : root 상태에서
+   password : qwe@123
+   
+   su kgitbank해서 kgitbank로 바꾼 뒤에 vncserver 명령어 누르기 = port 2 = account
+   = 세션 2
+    password : qwe@123
+    
+
+2. netstat -lntup |grep vnc (포트 확인) 
+ cat /etc/services |grep -P 5900\|6000			
+
+3. 방화벽 설정 
+5900=vncserver	5901~/tcp                  5901-5903 tcp         6001-6003 tcp
+6000=Xwindows	6001~/tcp                         
+ 
+*** 해상도 설정****
+vi /etc/sysconfig/vncservers          /etc/rc.d/init.d/vncserver restart 를 돌리기위해 필요한 설정
+VNCSERVERS="1:root 2:kgitbank" (세션번호에 대한 계정 매칭)
+ VNCSERVERARGS[1]="-geometry 1000x1000" (세션1 해상도)                      pstree -p | grep vnc
+ VNCSERVERARGS[2]="-geometry 500x500" (세션2 해상도)     
+
+** 세션종료***
+비번설정 : vncpasswd     /홈디렉토리/.vnc/passwd 파일생성  
+세션종료 : vncserver -kill :세션번호   
+데몬종료: killall -9 Xvnc      
+/etc/rc.d/init.d/vncserver 데몬으로 돌리기위해서는 해상도 설정 필수
+
+***접속 방법****
+vncviewer IP : 세션번호 
+client 본서버로 갑니다  (putty에서는 안됩니다)      클라이언트가서 바탕화면에 터미널 두개 켜고 각각 접속 
+#vncviwer
+192.168.1.10:1
+
+
+ntsysv 명령어로 부팅시 데몬 자동실행 설정 가능
+
+
+
+
+su user1
+vncserver
+
+su user2
+vncserver
+
+
+
+
+
+
+
