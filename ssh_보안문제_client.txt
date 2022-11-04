@@ -1,0 +1,16 @@
+Client 설정
+192.168.111.20
+
+/client/scp/chw_lucky(file)
+
+/client/sftp/kgitbank_lucky(file)
+
+/client/ssh/iu_lucky(file)
+
+실행은 client 에서만 할것
+각 /client 디렉토리 방법으로 접속을 시도하여
+server에 있는 iu kgitbank chw 파일을 가져오고 = download
+각 lucky 파일들은 server 해당 디렉토리에 upload하세요
+
+마지막 ssh 는 scp sftp 아무거나 쓰세오
+	

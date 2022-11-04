@@ -1,8 +1,23 @@
-Linux 1		유동 IP	192.168.1.129
-Linux 2 	     고정 IP	192.168.1.10
+A -> A	Local Access
+A -> B	Network Access = Remote Access = Remote Service
 
-1. GUI 로 바꾸기 (유동 -> 고정)
-우측 상단 탭(유선 네트워크 연결) 우클릭 - 연결 편집 - system eth0 - 변경하기 - 6가지 고치시고 적용하고 나오시면 끝
+TUI
+Telnet			TCP 23 Port	일반통신 = Clear Text = 1234 = root 접속 불가
+SSH(Secure Shell)	TCP 22 Port	보안통신 = RSA 알고리즘
 
-2. TUI 로 바꾸기 (유동 -> 고정)
-vi /etc/sysconfig/network-scripts/ifcfg-eth0	= 네트워크 설정 파일 = 꼭 기억해주세요 !!	
+	                             1                                     5
+	RSA	공개키 = 부호화 = 1234 -> AAAAB3Nza	 !@#!@$123123asdfijaosfdjapfjaifjaspijfaspijf
+
+		개인키 = 복호화  AAAAB3Nza-> 1234 -> !@#!@$123123asdfijaosfdjapfjaifjaspijfaspijf
+                             2     3       4
+
+
+GUI
+Remote Desktop		TCP 3389 Port 	일반/보안통신  = 윈도우 전용
+VNC			TCP 5900 / 6000 Port 	일반 / 보안통신 + SSL(TCP 443 Port)
+
+user1	1	ajpidjfpasdjfasdjf
+user2	1	ajpidjfpasdjfasdjf
+
+
+가끔 media/Centos../이거 마운트 안되어있는 경우 있는데 퓨티만 키고 본체에 로그인 안해서 그렇다.

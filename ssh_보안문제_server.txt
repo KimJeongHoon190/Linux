@@ -1,0 +1,22 @@
+server 설정
+192.168.111.10
+1G SCSI
+P	*P*	L	부팅시 자동마운트 /dev/sdb2
+200	500	etc	m.P /ssh/sdb
+
+/ssh/sdb/scp/chw(file)
+/ssh/sdb/sftp/kgitbank(file)
+/ssh/sdb/ssh/iu(file)
+**	chw, kgitbank, iu는 계정입니다 
+
+보안설정 할것 (ssh,su) 단 iu 계정만 su 사용가능
+root 접속 불가
+
+/ssh/sdb/scp  <-- chw 계정만 사용가능 (UID 권한)
+   
+/ssh/sdb/sftp <-- kgitbank 계정만 사용가능 (GID 권한)
+ --> 내가 푼 방식 : iu를 kgitbank 그룹계정에 가입
+/ssh/sdb/ssh  <-- 권한 아무것도 건드리지 말것 
+			(iu 계정으로 접속해서 해결할것)
+
+---------root iu vnc 자동 세션 설정 ------------------------
