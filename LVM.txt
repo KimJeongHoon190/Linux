@@ -1,0 +1,164 @@
+Raid ( Rendundancy Array Inexpensive Disk)= array 축소 확장 불가능  10+10+10 --> 30
+	남아도는   구성집합체  비싸지 않은  디스크
+1
+2
+3	물리적 다중 디스크를 모아서 논리적 단일 디스크로 만드는것 ? 속도 자동복구
+                                    합쳐서 속도보장, 중복성 보장
+
+Logical Volume Management(LVM)	 속도 자동복구 < 이딴거 없어요         레이드와 달리 축소,확장은 가능
+논리적 구성	
+	물리적 다중 디스크를 모아서 하나의 볼륨 그룹으로 만든 다음 다시 논리적 볼륨으로 쪼갠다
+	 P.V피지컬볼륨		          V.G볼륨그룹			L.V로지컬볼륨
+      10 10 10                             30                     ex) 15 15 볼륨 단위를 넘어가는 것도 가능
+
+10G(/dev/sdb)
+10G(/dev/sdc)									        M.P
+10G(/dev/sdd)	=>raid -5(20G /30G)	/dev/md5 				/export/md5
+
+10G(/dev/sde)
+10G(/dev/sdf)                                                            M.P
+10G(/dev/sdg)	=>LVM(30G)	/dev/LVM_VG/LVM1	LVM1  3G + 2G = 5G	   /export/LVM1
+				         /dev/LVM_VG/LVM2	LVM2  5G - 1G = 4G	   /export/LVM2
+				         /dev/LVM_VG/LVM3	LVM3  ETC		        /export/LVM3
+-----------------------------------------------------------------------------------------------------------
+하드디스크 10기가 6개 추가
+실습>>
+<레이드> sbb sbc sbd --> /dev/md5
+mdadm -C /dev/md5 -l 5 -n 3 /dev/sd[b-d]
+mkfs.ext4 /dev/md5              mdadm -D /dev/md5 : 레이드 구성 확인
+mdadm -D -s /dev/md5 > /etc/mdadm.conf   (-s가 스캔 커맨드)   md127로 바뀌어서 부팅이 제대로 안된 경우는 원인이 이걸 안썻기 때문
+mkdir -p /export/md5
+vi /etc/fstab
+/dev/md5 /export/md5 ext4 defaults 1 2
+mount -a
+mdadm -D /dev/md5 확인
+ cat -n /etc/mdadm.conf 확인
+     1  ARRAY /dev/md5 metadata=1.2 name=kgitbank:5 UUID=9b7cb0cc:a4c92522:edd42dd8:ac6d8c23
+reboot  부팅이 정상적으로 되야함
+
+<LVM>  sde sdf sdg 
+pvcreate /dev/sd[e-g]                                       physical volume create
+pvscan --> 잘 만들었는지 확인(간단)
+in no vg: 3 결과
+pvdisplay --> 자세히 확인
+vgcreate LVM_VG(이름은 아무거나 가능) /dev/sd[e-g]           volume group create
+vgscan --> 간편확인
+vgdisplay --> 상세확인
+cur pv 현재 pv
+act pv 활동하는 pv
+logical 쪼개면
+   Free영역이 줄어듬
+vgreduce LVM_VG /dev/sde  그룹 탈퇴
+vgdisplay
+cur pv 3-->2 act pv 3-->2
+vgextend LVM_VG /dev/sde  장치 추가
+lvcreate -L 3G -n LVM1 LVM_VG : LVM_VG에서 3기가 빼낸 걸 새로운 lvm1을 만들어 이름짓고 넣는다
+lvscan --> 3GB inherit
+lvdisplay
+ls -l /dev/LVM_VG/
+링크파일이 나옴 원본파일은 ../dm-0이다
+소프트링크,하드링크 개념 필요
+vgdisplay 
+alloc : 3G
+free : 27G
+lvcreate -l 100%FREE -n LVM2 LVM_VG      :   LVM_VG 전체에서 LVM1 생성하는데 쓰고 남은 용량 100%를 LVM2에 투자하겠다.
+lvscan
+vgdisplay --> free =0
+lvscan --> LVM2 에서 LVM1으로 10기가 줘볼까?
+뺴고 넣기
+lvreduce -L -10G(-는 뺄떄) /dev/LVM_VG/LVM2    축소할 때는 - 꼭 쓰기
+y
+to 16.99
+lvscan
+vgdisplay --> free 2560/10G
+lvextend -L +10G /dev/LVM_VG/LVM1     확장할 때는 + 꼭 쓰기 (+ 없으면 더해지는게 아니고 대체됨, 기존에 있는거 없애고 10)
+lvscan
+vgdisplay
+free --> 0
+lvscan
+이제삭제해보자
+lvremove /dev/LVM_VG/LVM2
+yes
+lvscan 
+vgscan
+새로만들어보자
+lvcreate -l 100%FREE -n LVM2 LVM_VG
+lvscan
+포맷해보자
+ls -l /dev/LVM_VG/
+파일 두개 LVM1 LVM2
+경로가 너무 길다 줄여보자 ==라벨링해보자
+포맷부터 해야함
+mkfs.ext4 /dev/LVM_VG/LVM1                  
+inode tables : done --> extended는 포맷안됨 inode 0 / inode는 클러스트의 개수를 뜻함
+journal :done
+writing superblocks and filesystem...: 초기화     체크섬
+mkfs.ext4 /dev/LVM_VG/LVM2
+done done done
+tune2fs(e2label) 둘 중 하나치기                                  tune2fs : 파일시스템 파라미터 값을 설정하여 시스템 안정성이나 성능을 높인다.   e2label : fstab에서 파티션을 구분할 때 /dev/sda1같은 장치 이름이나 "/1"같은 label을 사용한다. 설치시에 라벨이 자동으로 만들어지는데 기존에 '/'이라는 라벨이 붙은 파티션이 있으면 라벨이 중복되지 않도록 변경해서 만든다. 라벨이 마음에 안들면 e2label명령을 사용하면 원하는 라벨 이름으로 변경가능, 변경한 후에는 fstab의 내용도 바꿔야함
+1.tune2fs -L LVM1 /dev/LVM_VG/LVM1 
+e2label /dev/LVM_VG/LVM1 확인
+2.e2label /dev/LVM_VG/LVM2 LVM2
+e2label /dev/LVM_VG/LVM2 확인
+mkdir /lv1 /lv2 마운트 포인트 만들기
+vi /etc/fstab --> 여기 들어가서 수정하는 것은 포맷을 기본적으로 한 상태여야한다. 마운트는 할 필요없고. 여기에 쓰고 나가서 mount -a하면 마운트가 된다
+LABEL=LVM1(주소를 줄여쓴다) /lv1 ext4 defaults 1 2
+LABEL=LVM2  /lv2  ext4 defautls 1 2
+mount -a 오류 확인
+df -Th
+ls -l /dev/mapper
+링크 파일이 두개 있다
+ls -l /dev/LVM_VG 여기도 링크 두개
+
+-------------------------------------------------------------------------------------------------------------------
+LVM구성 순서 = 축소/확대가  탄력적이다
+
+fdisk /dev/sdx => t (파티션속성변환 8e) = > PV => VG => LV
+						pv 물리적 볼륨 정의
+						VG 뭉친다
+						LV 다시 쪼갠다
+명령    pv or vg or lv + [option]
+create 생성
+remove 삭제
+scan 검색	= 심플하게 보는거
+display 확인 	= 자세히
+extend 확장
+reduce 축소
+change 속성변경  -a y/n 사용여부  -l 숫자 logical 볼륨수
+
+설정순서
+pvcreate 장치명       
+pvcreate /dev/sd[b-d]
+pvscan => pvdisplay
+
+vgcreate 볼륨명 장치명
+vgcreate LVM_VG /dev/sd[b-d]
+vgscan => vgdisplay
+vgreduce LVM_VG /dev/sdd 장치삭제
+vgextend LVM_VG /dev/sdd 장치추가
+
+lvcreate -L size	-n 볼륨명	볼륨그룹     사이즈 정확히 입력
+	 -l 퍼센트FREE                   남아있는 영역 모두다(대충)
+lvcreate -L 3G -n LVM1 LVM_VG
+lvcreate -l 100%FREE -n LVM2 LVM_VG
+lvreduce -L -1G /dev/LVM_VG/LVM2 줄이기
+lvextend -l +100%FREE /dev/LVM_VG/LVM1
+
+lvremove /dev/LVM_VG/LVM2
+
+마운트작업
+라벨링 작업전에는 항상 포맷을 먼저 하세요 ~
+mkfs.ext4 /dev/LVM_VG/LVM2
+tune2fs -L LVM2 /dev/LVM_VG/LVM2
+mkfs.ext4 /dev/LVM_VG/LVM1
+e2label   /dev/LVM_VG/LVM1 LVM1
+mkdir /lv1 /lv2
+/etc/fstab 설정
+LABEL=LVM1              /lv1                    ext4    defaults        1 2
+LABEL=LVM2              /lv2                    ext4    defaults        1 2
+
+
+
+
+
+
