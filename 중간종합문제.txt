@@ -1,0 +1,167 @@
+
+server /client 공통 설정
+1.	initdefault=5
+2.	selinux=disabled
+3.	putty 접속
+4.	Server IP 192.168.111.10/24
+	Clinet IP 192.168.111.20/24
+5.	외부 통신=www.naver.com 접속
+6.	모든 서비스는 자동실행=chkconfig /ntsysv 로 설정
+---------------------------------------------------------------------------------------------------
+1. 기본 디스크 구성=2G(SCSI)=/dev/sdb
+	200	200	200	etc				device=/dev/sdb5
+	P	P	P	L				M.P=/server/sdb5(부팅시 자동마운트)
+
+2. LVM 구성=3G, 3G, 3G(SCSI)=/dev/sd[c-e]			device=LABEL=LVM1,LABEL=LVM2
+	VG=LVM_VG						M.P=/server/LVM1(부팅시 자동마운트)
+	LVM1=5G							M.P=/server/LVM2(부팅시 자동마운트)
+	LVM2=etc						
+                                                                                          
+                                                                                                 device=/dev/md5
+3. Raid-5로 구성=4G, 4G, 4G(SCSI)=/dev/sd[f-h]			M.P=/server/md5(부팅시 자동 마운트)		
+---------------------------------------------------------------------------------------------------
+Server 디렉토리 구성 
+/server/sdb5/user1(계정)/optimus/prime(file내용 : 애국가 1절)
+			/1.gz
+			/2.bz
+			/3.tar.gz
+/server/LVM1/user2(계정)
+/server/LVM2/user3(계정)
+/server/md5/anon(계정아님)/anontest(file)
+---------------------------------------------------------------------------------------------------
+Server Xinetd 구성
+1. 사용하는 서비스 = telnet
+2. 접근을 허용하지 않을 호스트 = HOST PC(Windows 7)
+3. 총접속 허용수 = 4명
+4. 접근을 허용할 시간 PM 19:00-22:00
+---------------------------------------------------------------------------------------------------
+Server VNC 구성                                     -->  vncviewer 쓸 꺼면 Putty에선 안되니까 client 본서버로 가라 
+1. user1 = 세션 1 = 배경화면 500X500
+2. user2 = 세션 2 = 배경화면 1000X1000
+3. user3 = 세션 3 = 배경화면 800X800
+---------------------------------------------------------------------------------------------------
+Server SSH 구성
+1. 서로 파일 동기화(업/다운로드) 하세요
+2. 보안 설정 /bin/su  => user3 계정만 사용 가능
+3. root 권한으로 로그인 X
+server				     client
+/server/sdb5/user1/sftp/1	/client/sftp/11	sftp방법 / user1 계정으로 업/다운로드 (권한은 UID만 수정)
+/server/LVM1/user2/scp/2	/client/scp/22	      scp방법 / user2 계정으로 업/다운로드 (권한은 GID만 수정)
+/server/LVM2/user3/ssh/3	/client/ssh/33	     아무방법 / user3 계정으로 권한 수정 X
+---------------------------------------------------------------------------------------------------
+
+
+
+
+풀이 >>  1. 1,2,3,4, 다 썼으니까 자동 logical
+          /dev/sdb 파티션 한 방에 지우는 방법 -->  mkfs -t ext4 /dev/sdb   한 방에 포맷은 파티션 다 지우는 것과 동일
+                                                                                            원래 포맷은 파티션 각각 하는 것이다
+ yes
+fdisk -l /dev/sdb
+다 지워져있음
+
+2. LVM
+
+pvcreate /dev/sd[c-e]
+pvscan 확인
+pvdisplay 자세히 확인
+vgcreate LVM_VG /dev/sd[c-e]
+vgdisplay
+lvcreate -L 5G -n LVM1 LVM_VG
+lvcreate -l 100%FREE -n LVM2 LVM_VG
+lvscan
+vgdisplay
+남은 용량 0
+ls -l /dev/LVM_VG
+링크
+mkfs -t ext4 /dev/LVM_VG/LVM1
+                            2
+tune2fs -L LVM1 /dev/LVM_VG/LVM1
+              2                2
+mkdir LVM1 LVM2
+vi /etc/fstab
+LABEL=LVM1  /server/LVM1
+         2             2
+mount -a
+df -Th
+
+
+-------------------------------------
+
+tail /etc/passwd
+mkdir /etc/skel1
+cd /etc/skel1
+pwd
+cp -r /etc/skel/. .  알맹이 복사   --> skel은 복사 안됨   --> 만약 cp -r /etc/skel . 이렇게 하면 skel 디렉터리와 그 하위 자료까지 다 복사       
+ls -al
+mkdir optimus && cat > optimus/prime
+애국가1절
+
+touch 1
+gzip 1
+cp 1.gz 2.gz
+gunzip 2.gz
+bzip2 2
+tar cvfz 3.tar.gz 1*
+ll
+useradd -d /server/sdb5/user 1 -mk /etc/skel1 user1
+grep user1 /etc/passwd /etc/shadow /etc/group && ls -ld ~user1 /......
+
+....
+useradd -d /server/LVM1/user2 user2
+
+
+
+no_access =   안 띄우면 데몬 안 돌아감
+instances =
+/etc/xinetd.d/telnet 에서만 가능한 옵션 : access_times =
+
+
+6000 대 --> 그래픽 포트
+5900 대 --> 텍스트 포트
+
+
+
+vncserver는 만드는 것도 그 계정으로, 지우는 것도 그 계정(user1)으로 수동적으로
+ls -l ~user1/.vnc--> user1 밑에 .vnc            ??????????????????????????????????????//
+
+mkdir a b c && touch a/1 b/2 c/3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
