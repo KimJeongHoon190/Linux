@@ -1,0 +1,337 @@
+FTP Service 란? TCP 20~21
+File Transfer Protocol 
+TCP/IP 환경에서 파일 전송용 애플리케이션
+--------------------------------------------
+2가지 환경에서 사용 가능                2 --> 1로 가는게 목표
+1. 시스템에 등록되어 있는 사용자들을 위한 FTP Service                    폐쇄형
+2. 익명(Anonymous)의 모든 사용자에게 개방 FTP Service = default값   개방형  기본값
+=====================================================
+FTP Service - Vsftpd     
+Red Hat Enterprise Linux 가 출시 되면서 
+Red Hat Linux 계열에서 사용하는 기본 FTP Package 이다
+주요기능
+1.가상 IP별 별도의 환경 설정 가능
+2.가상 사용자 설정
+3.전송 대역폭 지정
+4.PAM 지원(PAM을 통한 wtmp에 기록 남김)
+5.xferlog 표준 로그 파일보다 상세한 자체 로그 파일 형식 지원      
+6.Standalone 방식과 Xinetd를 통한 운영방식 모두 지원         
+	└ 지금 할꺼	└ 요건 우리가 해본거                 
+====================================================
+vsftpd 설치
+vsftpd deamon 설치
+rpm -ivh vsftpd*  // server 로컬
+yum -y install vsftpd //server 외부통신가능시     둘 중 하나 골라서해
+ftp-0.17-54.el6.i686 // client 설치
+-----------------------------------------------
+ssh deamon 활성화
+/etc/rc.d/init.d/sshd restart
+vsftpd deamon 활성화
+/etc/rc.d/init.d/vsftpd restart                  xinet이 아니라 standalone 이기 때문에 되어야한다.  --> xinet에서 돌리다가 standalone으로 쓰고 싶으면 vi /etc/vsftpd/vsftpd.conf에서 110행 가서 listen=yes로 바꿔 그리고 /etc/rc.d/init.d/vsftpd restart하면 돌아간다.                           
+-----------------------------------------------
+동작 상태 확인
+netstat -antup |grep 21
+ftp port = tcp 20/21 을 씀~
+===================================================
+Vsftpd 서버 설정~
+기본 구성만으로도 운영은 가능하나
+보안상의 이유로 사용자 제어와 관련하여 꼭 구성해야함
+/etc/vsftpd/vsftpd.conf 	vsftpd의 메인설정파일
+/usr/sbin/vsftpd		     실행파일
+/etc/rc.d/init.d/vsftpd		실행 스크립트파일
+/etc/vsftpd/ftpusers		pw에서 계정접속 제한
+/etc/xinetd.d/vsftpd		xinetd 설정파일
+===================================================
+vi /etc/vsftpd/vsftpd.conf 파일 들어가라
+se nu 
+=====================================================
+47 #chown_uploads=YES 
+48 #chown_username=whoever
+   :앞의 27번 라인의 익명 사용자의 업로드를 허용했을 경우
+    업로드한 파일의 소유권자를 변경할 것인지에 대한 설정과
+    변경을 허용 했을때 어떤 사용자로 변경할 것인지에 대한 부분
+110 listen=YES 
+	vsftpd 데몬은 standard 방식 xinetd 방식 2가지 있는데
+	standalone = yes
+	xinetd = no
+119 tcp_wrappers=YES
+	vsftpd 서비스가 TCP Wrappers에 의해 제어가 가능하도록
+	설정할 수 있다 
+	허용할 호스트에 대해서는 /etc/hosts.allow 파일에 설정
+	허용하지 않을 호스트는 /etc/hosts.deny 파일에 설정
+
+**추가내용**
+최대 전송속도 제한
+anon_max_rate=0 // 익명계정으로 접근했을 경우 다운로드 할수 있는
+                   최대속도 지정 옵션
+		   0은 제한 없음을 의미 단위는 bps(Byte/Second)
+local_max_rate=0 // 시스템의 사용자(내부자)가 파일을 전송할 경우 다운로드
+		    할 수 있는 최대 속도 옵션
+		   0은 제한 없음을 의미 단위는 bps(Byte/Second)
+max_clients=0 // 최대 접속자수 지정옵션 , 0은 제한 없음            =instances와 유사
+max_per_ip=0 // client 호스트당 접속 할 수 있는 최대회수 제한      =per_source와 유사
+
+** anonymous 설정부분 **
+anonymous_enable=YES // 12번행정도에 있으며 기본값은 YES 이다 주석처리 안되있다
+anon_root=/export/sdb/home/anon // 익명계정 접속위치 지정  (기본값은 /var/ftp)
+no_anon_password=YES // 익명계정 접속시 패스워드를 사용여부
+anon_upload_enable=YES // 익명 계정 업로드 사용가능 여부
+anon_mkdir_write_enable=YES // 익명 계정 디렉토리 생성 가능 여부
+dirmessage_enable=YES // 디렉토리 이동할 경우 사용자에게 메세지를 보여주는 여부
+-----------------------------------------------------------------
+93번행
+★★★★★ 디렉토리 이동제한 ★★★★★
+chroot(change root)_local_user=yes (홈 디렉토리 이동제한=홈디렉토리가 /가 됨)   yes --> 제한     no --> 제한없다
+	/etc/passwd 에 등록되어 있는 모든 계정에게 현재 디렉토리를
+	벗어나지 못하게 제한 할 것인지의 여부를 묻는 옵션        
+ftp> ls -al
+227 Entering Passive Mode (192,168,1,10,233,195).
+150 Here comes the directory listing.
+drwx------    4 500      500          1024 Jul 27 00:04 .
+drwx------    4 500      500          1024 Jul 27 00:04 ..                     --> bash 어쩌고가 있으니까 홈디렉토리다.
+-rw-------    1 500      500            17 Jul 27 23:53 .bash_history
+-rw-r--r--    1 500      500            18 May 10  2016 .bash_logout
+-rw-r--r--    1 500      500           176 May 10  2016 .bash_profile
+-rw-r--r--    1 500      500           124 May 10  2016 .bashrc
+drwxr-xr-x    2 500      500          1024 Nov 12  2010 .gnome2
+drwxr-xr-x    4 500      500          1024 Jul 13 01:42 .mozilla
+226 Directory send OK.
+ftp> pwd
+257 "/"    가짜 최상위  --> 원칙적으로 최상위는 홈디렉터리가 못 된다.
+                        
+*끝이 .sh이면 실행파일 744
+
+
+chroot_list_enable=yes (디렉토리 이동제한 예외 리스트 활성화여부)
+	위의 옵션(chroot_local_user)에서 YES를 지정한 경우 시스템의 모든 계정은
+	디렉토리 이용에 제한을 받게 된다 이때, 제한 받는 것으로부터
+	제외될 사용자의 목록을 사용할 것인지에 대한 여부 묻는 옵션
+예외적으로 최상위 까지 갈 수 있는 리스트를 만들겠다.
+
+chroot_list_file=/etc/vsftpd/chroot_list (예외파일 지정)
+	위의 옵션을 활성화(yes)를 했을 경우 해당파일의 위치를 지정
+예외적으로 최상위까지 갈 수 있는 유저를 chroot_list안에 입력
+
+97,99 행 주석 지우기 --> 저장하고 나가기 --> (현재 위치 : /etc/vsftpd)vi chroot_list 만들고 
+                                                              특권층 아이디를 입력
+--> 데몬돌리기 --> 클라이언트에서 ftp 접속해보기
+
+요약 : 93번은 계엄령 --> 97,99행  특권층 만들기
+화이트리스트
+---------------------------------------------------------------------
+★★★ 사용자 접근 제한하기 ★★★
+118행 userlist_enable=yes (사용자의 접근 제어기능 사용여부)   --> 처음엔 이거 밖에 없다. --> 보안을 위해 기본적으로 예스되어있다
+userlist_deny=yes-->블랙리스트    --> 처음에 vsftpd.conf들어갔을 때 userlist_enable=yes만 있고 이건 없다. 직접 넣어줘야함
+	사용자의 접근 제어 기능을 사용함으로써
+	사용자의 거부자 목록 만들것인지 여부
+userlist_file=/etc/vsftpd/user_list
+	거부시키거나 허용시키기 위해 사용할 파일의 위치 지정
+
+
+클라이언에서 서버로 ftp 접속이 안되면 서버에서 system-config-firewall해서 ftp 포트를 신뢰한다고
+체크하고 적용눌러라
+
+vi /etc/vsftpd/vsftpd.conf
+123행 제일 끝 행
+vi user_list 들어가보기   여기는 수정하고 데몬 안 돌려도 됨
+
+# vsftpd userlist
+# If userlist_deny=NO, only allow users in this file  --> 화이트리스트 이게 권장됨
+# If userlist_deny=YES (default), never allow users in this file, and  --> 블랙리스트
+# do not even prompt for a password.
+# Note that the default vsftpd pam config also checks /etc/vsftpd/ftpusers
+# for users that are denied.
+root
+bin
+daemon
+adm
+lp
+sync
+shutdown
+halt
+mail
+news
+uucp
+operator
+games
+nobody
+~
+~
+~
+"user_list" 20L, 361C    --> 아이디 입력 단계에서 막기
+여기서 루트를 주석처리하고 ftp접속해보자
+
+달라진 게 있을 거다 패스워드를 칠 수 있다. 그 전에는 아이디를 루트로치면 패스워드 칠 기회도 없었음
+근데도 패스워드 치면 접속 안됨
+vi ftpusers  --> 패스워드 입력 단계에서 막기
+여기도 루트 주석처리 == 무력화
+데몬 돌릴 필요 없음(본 파일 수정이 아니니까)
+그럼 이제 클라이언트에서 ftp로 서버 루트 접속 가능
+두개 다 풀어줘야 root가 완벽하게 서버로 ftp 로그인이 가능
+-------------------------------------------
+
+vi vsftpd.conf                                       차단대상 허가대상
+122행 userlist_enable=yes                      |-->    블랙-->화이트
+123행에 쓰기 userlist_deny=yes  --> 이게 no로 바꾸는 순간 userlist_file이 허용자 리스트가 된다. 주의!!!!
+userlist_file=/etc/vsftpd/user_list 이것도 쓰기
+이건 데몬 돌리기 본파일 (vsftpd.conf)을 바꿨으니까
+                    
+
+
+----------------------------------------------------------------
+1. /etc/vsftpd/ftpusers 파일 역할 : pw쳐야하는 상태에서 계정접속 제한 (패스워드 차단)
+2. /etc/hosts.allow  :  허용하는 ip 대역대 
+   /etc/hosts.deny   :  차단하는 ip 대역대 
+   ※ 상위 1.2 은 deamon 과 전혀 상관없음   --> 메일설정 파일이 아니니까  --> 데몬돌릴 필요없다.
+                                               /etc/vsftpd/vsftpd.conf
+
+** tcp_wrapper (host 제한) **
+	/etc/hosts.allow
+	/etc/hosts.deny
+
+** 파일 2개를 모두 쓸경우  
+	/etc/hosts.allow
+	vsftpd:192.168.1.1 <====service : host ==서비스 : IP== 어느 서비스에 어느 IP를 허용하라   
+	
+	/etc/hosts.deny
+	all:all  <=== service : host   == 이하동문
+
+** 파일 1개만 쓸경우 => 첫번째줄부터 순서대로 적용 = 네트워크의 ACL 순서와 같다    ------->  hosts.allow 에 쓰든, hosts.deny에 쓰든 결과는 동일하더라
+	/etc/hosts.allow  <=== service : host : deny/allow   서비스 : IP : deny/allow
+	vsftpd:192.168.1.20:allow(정책)   (네트워크대역 192.168.1.* or 192.168.1.)
+	all:all:deny--> 마지막은 정체성(정책)  
+
+파일 2개를 모두 쓸 경우>>
+hosts.allow 들어가기
+vsftpd:192.168.1.20적기 --> ftp로 들어온 ip .20은 허용
+host.deny 들어가기                    
+all:all(서비스:아이피)적기 --> 모든 서비스, 모든 아이피로 출발한 것 차단
+
+--> 결과 :vsftp로 통한 클라이언트에서만 접근 가능. 윈도우는 안됨
+두 개다 적어야 적용가능
+
+이걸 쓴 순간 ssh가 안됨
+
+--> 만약 vsftpd:all:deny
+         vsftpd:192.168.1.20:allow 이렇게 적으면 순서 때문에 통과안됨 
+
+--> c언어기 때문에 절차지향
+
+
+--------------------------------------------
+ping - icmp  사용
+
+------------------------------------------
+모든 방화벽은 기본 화이트리스트 --> 한 줄로 가능
+블랙리스트는 두 줄 이상 필요( 1얘네 허용하고, 2나머진 모두 거부)
+모든 정책은 거부가 먼저
+그래서 순서가 중요 
+
+access-list 1 permit 192.168.10.1 0.0.0.0   
+--> 거부가 우선이지만 순서가 제일 첫번째 이므로 통과됨. 
+만약 ip 10.2가 들어오면 첫 정책과 부합되지 않으므로 두번째 정책으로 넘어감 
+--> 두번째 정책과 부합 --> 꺼져
+access-list 1 deny    192.168.10.0 0.0.0.255 
+
+
+--------------------------------------
+ 서버에서 user1~user5 생성하고 실습을 하자
+
+	user1 : 디렉토리 이동제한 없음 = 마음대로 이동 = 예외처리
+	user2 : 디렉토리 이동제한 
+	user3 : 디렉토리 이동제한 , 계정(user_list)에서 막히도록 해주세요
+	user4 : 디렉토리 이동제한 , pw(ftpusers) 에서 막히도록 해주세요
+	user5 : 디렉토리 이동제한 없음 = 마음대로 이동 = 예외처리
+ 
+	Windows 192.168.111.1 로 출발해서 ftp서버로 들어오는 모든 패킷 거부
+
+
+
+풀이
+>> vi chroot_list
+user1
+user5
+예외처리
+--> 클라이언트에서 user1,user5로 ftp접속하면 마음대로 이동 가능, 디렉토리 생성도 가능
+
+vi user_list
+ or cat >> user_list 
+     user3       반드시 엔터치고 컨트롤 씨 해야 저장된다.
+
+vi ftpusers
+or
+cat >> ftpusers
+user4
+
+vi /etc/hosts.allow  -->다른 파일없이 이 파일 하나에만 몰빵할 거면 기본 두 줄
+화이트리스트                                          블랙리스트
+vsftpd:192.168.111.20:allow                   or     vsftpd:192.168.111.1:deny
+vsftpd:all:deny                                        vsftpd:all:allow                          
+
+
+-----------------------------------------------------------------------------------------
+vi /etc/vsftpd/vsftpd.conf 
+12줄 anonymous yes   --> yes로 한 상태에서 아이디 anonymous, 패스워드 엔터로 들어올 수 있다
+                                       익명 사용자 이용 가능하게 한 설정 
+ftp 192.168.111.10
+anonymous
+패스워드는 엔터
+
+
+bin
+ascii
+prompt
+get
+put
+mget
+mput
+pwd --> anonymous로 들어오면 /가 디폴트 위치다. 홈디렉터리   형식적 최상위   --> /var/ftp/pub가 익명자의 기본 홈디렉터리 위치
+진짜 최상위가 아니다. 막아놓은 것 --> 디렉토리 이동 제한   --> 홈디렉터리가 다 들어가 있으면 이동이 가능하다.
+왜냐하면 익명이니까 보안때문에
+mkdir --> w 권한이 있어야 하기 때문에 익명은 사용불가
+익명자는 들어올 권한은 있지만 업로드 권한은 없다.
+15번 줄 local 계정(내부자)은 접근 가능 --> 이걸 막으면 내부인들이 못들어옴
+ 530 로그인 페일 ???????
+230 로그인 오케이 ?????
+331 확인 오류값 ??????
+230 ?????
+500 oops   ???????
+데몬 돌리기 /etc/rc.d/init.d/vsftpd restart
+제한 걸어보기
+19번 줄write_comman yes 쓸 권한 추가
+23번 유마스크
+755니까 other도 파일 볼 수 있다.
+25번 익명자가 파일 업로드 허가
+30번 익명자가 디렉토리 생성 허가
+34번 디렉터리 이동시 알려준다. directory successfully changed 이게 나타나게 해준다
+38번 업로드 흔적, 다운로드 흔적 등 모든 흔적을 남긴다  xferlog
+42번 데이터 옮길 땐 기본 20번 포트를 쓴다
+45   ??????????????????????????????????????????????????????
+유저1이 소유한 파일이 있는데 유저2가 복사를 하면 그 파일은 유저2 것이 된다.
+51 xferlog의 파일 위치
+59 쉬고있는 세션(클라이언트가 들어오기만 하고 파일 업로드 다운로드 없음)
+    은 600초가 지나도 ????????????????????????? ?    연결 유지형
+   네이버 같은 웹은 익명접속 걍 아이피치고 들어감 --> 세션 유지 안함 --> 비연결 유지형 stateless
+  telnet,ftp는 아이디,패스워드도 치고 들어가야함 로그인 --> 세션 유지 하려함 --> 연결 유지형 stateful
+63 2분동안 입출력이 없으면 서버가 쫓아낸다
+
+86 배너 광고창
+--> 접속 할 때 클라이언트에서 뜬다.
+
+26 ??????
+32???????
+94 일반계정들에겐 자기들 홈디렉터리가 최상위 위치가 되도록
+  -- > 진짜 최상위는 허가 받은 놈만 접속할 수 있게
+ --> 이건 루트도 제한 받는다.
+98  94번의 예외 사용자들 --> 특별권리 부여
+
+
+-----------------------------------------------------------------------------------
+ftp 명령어
+lcd : 로컬 위치 확인 --> 뒤에 목적지 안 바꾸면 원래 위치로 바뀜 주의 ?????????
+lcd c:\ 로컬 위치 확인 --> 다운로드 위치 바꾸는데 사용 가능
+pwd : 원격 위치 확인
+
+
+
+ 
