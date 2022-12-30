@@ -1,0 +1,81 @@
+** 압축 다시 풀고 새롭게 시작 - 1G 7개를 추가후 문제 풀어주세요 ~
+** 부팅시 데몬자동실행은 ntsysv로 할 수 있다
+---------------------------------------------------------------
+/dev/sdb 파티션 설정
+P	P	L	P
+200	200	etc	200
+
+
+
+Raid 설정
+md5 => /dev/sdc (1G) /dev/sdd(1G) /dev/sde(1G) => Raid-5
+
+LVM 설정
+LVM => /dev/sdf (1G) /dev/sdg(1G) /dev/sdh(1G) => VG=LVM_VG , LV=LVM1 => 1G , LABEL => LVM1=LVM1
+								=LVM2 => 2G , LABEL => LVM2=LVM2
+부팅시 자동마운트 설정
+/dev/sdb		          Raid-5			      LVM1			         LVM2
+device=/dev/sdb5	device=/dev/md5		device=/dev/LVM_VG/LVM1	  device=/dev/LVM_VG/LVM2
+mp = /export/sdb	mp = /export/md5	     mp = /export/LV1	       mp = /export/LV2
+--------------------------------------------------------------------------------------------------
+/export/sdb/home/user1 (계정이동)
+		/user2/public_html/index.html(애국가 1절) (계정생성과 동시에 자동 생성)
+		/user3/pub/1.gz (계정생성과 동시에 자동 생성)
+			   2.bzip2
+			   3.tar.gz
+		/anon(계정아님) /anontest <--(file)
+--------------------------------------------------------------------------------------------------
+1. /export/sdb/home/user3 디렉토리 권한 <== user3계정(모든 권한),user3그룹(다운로드),다른사용자(X)
+2. user4 계정이 user3의 그룹 권한으로 실행 될수 있도록 설정
+3. /export/sdb/home/user3/pub <== user4 계정의 접속위치
+4. user3계정만 FTP 디렉토리 이동 제한 없음 /나머지는 모두 이동 제한
+5. 익명계정은 /export/sdb/home/anon 으로 접속하도록 설정	anonymous  pw사용 없음
+6. user1 은 pw에서 차단 되도록 하고 user3,user4,anonmous를 제외한 계정은 ID에서 차단설정
+7. 총 접속자수 2명 // client에서 접근하는 vsftpd 서비스만 차단 시킬것
+8. /etc/sysconfig/vncserver 해상도 설정 
+	root = 세션번호 1 / 해상도 1000x1000
+	user1= 세션번호 2 / 해상도 500x500
+
+
+
+
+
+
+
+
+/dev/sdb 파티션 설정할 때 P P 두개 만든다. 각각 파티션 번호 1, 2 용량은 200메가
+그 다음 파티션 번호 4로 해서 P 하나 더 만듦 용량은 200메가
+그 다음 파티션 번호 3으로 해서 Extended 만들고 용량은 나머지
+다시 눌러서 logical 파티션 만든다
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
