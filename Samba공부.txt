@@ -1,0 +1,199 @@
+SMB(Server Message Block) =>공유 프로토콜
+디스크나 프린터와 같은 자원을 윈도우와 리눅스가 공유할 수 있도록하기 위한 프로토콜이다.    
+                                     암호화:md5   암호화:sha512
+                                            그 중간의 것으로 암호화해야함
+
+윈,리 둘 다 삼바 있어야함
+
+윈도우: 제어판 ->  프로그램 -> 프로그램 및 기능 --> 삼바 관련 파일 다 켜기 (SMB) --> 원칙적으론 재부팅을 해야하는데
+                                                                                                            안해도 되긴되더라
+ 
+CIFS 란? =>smb 확장버전
+CIFS(Common Internet File System) 는 SMB 파일 공유 프로토콜의 확장된 버전
+
+samba-winbind => 윈도우즈 ad 와의 연동
+
+**samba관련 파일**
+
+/etc/samba/smbpasswd	삼바유저 비번정보
+/usr/bin/smbstatus	삼바이용자 확인
+
+nmbd => netbios message block
+netbios 자원검색
+137~138/udp                                            ----> 포트 4개를 열어라
+smbd : 파일 프린터 공유폴더등 자원 탐색 서비스
+445/tcp 139/tcp
+----------------------------------------------------------------------------
+>>rpm -ivh samba-3.6......  대표패키지는 항상 왼쪽 제일 상단
+
+/etc/rc.d/init.d/smb restart
+/etc/rc.d/init.d/nmb restart
+(netstat -lntup | grep nmb
+netstat -lntup | grep smb)
+방화벽 들어가서 삼바 연다.
+137-138      -----> NMB   ---> 넷바이오스메시지블록
+udp
+139           ----> SMB
+tcp
+445             -----> SMB
+tcp
+
+(이거하기 전에 useradd user1, passwd user1 , 2도 같이 먼저 생성해야함)
+smbpasswd -a user1
+1234
+1234
+smbpasswd -a user2
+1234
+1234
+
+groupadd g1
+groupadd g2
+tail /etc/group
+
+usermod -G g1 user1
+usermod -G g2 user2
+id user1
+id user2
+
+vi /etc/samba/smb.conf
+
+
+vi /etc/samba/smb.conf 메인 설정파일
+:74
+워크 그룹 --> 모든 권한이 나에게 == 독립적 --> 윈도우에선 기본으로 워크그룹
+74행 주석처리
+밑에다가 원래 마이그룹을 워크그룹으로 바꿔
+
+
+;도 주석처리임
+
+283번에서
+7yy
+290에서  p
+290번 부터는 13일차 수업 3번 캡쳐 파일을 참고
+
+4번쨰 캡쳐 파일 참고
+testparm --> 오타 검증
+
+mkdir -p /samba/userdir /samba/groupdir  ---> testparm 에서 나온대로 만든다.
+ls -l /samba 
+
+umask 0022
+read only =no --> 쓰기 가능하다
+ls -l /samba
+chmod 777 /samba/*
+ls -l /samba
+/etc/rc.d/init.d/nmb restart
+                   smb restart
+
+클라이언트로
+접속
+smbclient //192.168.111.10/user_dir -U user1(2)
+                           group_dir       1(2) 
+서버로
+cd /samba/userdir
+touch 1
+
+클라이언트에서 파일 1을 확인
+
+클라이언트에서도 mkdir 써서 user1,user2 각각 하고
+서버에서 확인해보자 서로 연결되어서 
+생성이 된 걸 확인 가능하다.
+
+서버에서 smbstatus --> user1,user2 접속 기록 다 보임
+
+
+윈도우 탐색기 --> \\192.168.111.10 누르기 --> 연결해서 확인 다 가능
+
+**윈도우 폴더에서 user1으로 연결되어있는데 로그 아웃하고 user2로 연결하려 하는데 안됨
+--> 윈도우 재부팅 밖에 답이 없다. --> cache 값 재부팅하기 위해서
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------
+ 
+리눅스 계정인데 윈도우가 쓸 수 있게 된다.
+
+--------------------------------------------------------------------------------
+
+원도우계정매칭(ID와 PW 삼바서버와 동기화 필수)
+
+DC(domain controller 계정 매칭)
+
+
+비번 연동 방식 
+1) 리눅스의 사용자 계정을 그대로 사용한다. - plaintext password  암호화안되어있다.
+ security = user
+ encrypt passwords = no
+ passdb backend = 아무거나 <- 무시
+- 장점: 사용자 계정 추가 필요없음   
+- 단점: 윈도우에서 접속시 레지스트리수정이 요구, 맥에서 접속이 힘듬
+
+(2) 삼바만의 사용자 계정 사용 - encrypt된 smbpasswd사용    암호화됨
+ security = user
+ encrypt passwords = true
+ passdb backend = smbpasswd
+- 장점: (1)의 단점이 없음, 사용자패스워드는 
+	/etc/samba/smbpasswd 로 저장되며 손쉽게 계정이동 가능
+- 단점: 계정이 인원이 늘어나면 오버헤드(리눅스는계정6만개,윈도우는300개) 발생
+smb passwd file = /etc/samba/smbpasswd
+username map      =/etc/samba/smbusers
+
+(3) 삼바만의 사용자 계정 사용 - trivial database 사용 <-- 기본값
+ security = user
+ encrypt passwords = true                                                       TFTP --> 넷기초 복습
+ passdb backend = tdbsam
+- 장점: trivial database 사용하여 오버헤드가 줄어듬
+- 단점: 복잡하게 구성
+
+(4) 리눅스계정 삼바계정 연동 (Ldap)  ---> 현재 이것밖에 안 쓴다.    (lightweight directory access protocol) ==> active directory(윈도우 전용)
+ security = user                                                                               통합관제역할
+ encrypt passwords = true            
+ passdb backend = ldapsam
+
+unix password sync =>  윈도우 바꿀시 리눅스도 바꿈 비번
+ldap password sync =>  ad변경시 리눅스도 변경
+
+user1,user2 새사용자 생성
+
+rpm -ivh /media/CentOS_6.8_Final/Packages/samba-3.6.23-33.el6.x86_64.rpm
+/etc/rc.d/init.d/smb restart
+/etc/rc.d/init.d/nmb restart
+system-config-firewall
+samba - 137~138 UDP NMB/ 445/139 TCP SMB
+netstat -lntup |grep smb
+
+sambapasswd 새계정 추가 
+
+smbpasswd -a 계정명
+
+/etc/samba/smbpasswd 사용시
+samba 계정명
+
+samba 확인 명령
+testparm 공유내용확인
+smbstatus 연결내용
+
+사용법
+smbclient //192.168.1.10/user_dir(공유_디렉토리명) -U user1
+
+/etc/samba/smb.conf  설정 파일
+----------------------------------------------------------------------------------------------
+컨트롤+알--> sysdm.cpl --> 작업그룸:워크그룹
+
+secpol 윈도우      selinux 리눅스--> 전반적인 방화벽 개념 -->disabled-->방화벽 낮춤-->통신이 가능하게 함(클라이언트->서버)       
+             둘다보안정책
+
+독립체를 워크그룹이라한다.
+
+DC(domain control)를 중앙집권체제라고 한다. DC(왕)이 user1,user2...를 만들어서 백성들(타 PC)에 배포 
+
+
+워크그룹과 도메인환경은 윈도우만 있는 개념
+
