@@ -1,0 +1,114 @@
+** Server 설정========================================================================================================
+3G 추가 /dev/sdb
+200 	200 	200 	*etc   		device=> /dev/sdb5 (부팅시 자동 마운트)
+P	P	P	L		mp=> /export/sdb
+
+5G 5G 5G 추가 /dev/sd[c-e]
+VG=> LVM_VG     LV= LVM1 =10G LVM2 =5G
+--------------------------------------------------------------------------------------------------------------
+autofs설정    ------> 서버입장에서 자기 자신 시디롬에 접근할 때만 시디롬을 마운트하자  --> 서버에서도 가능
+/local_host/LV1이 브라우징 되도록 설정
+/etc/auto.misc 설정
+/local_host/LV1	-fstype=ext4	:LABEL=LVM1
+
+
+---->vi /etc/auto.master  --> /local_host  /etc/auto.misc ---> vi /etc/auto.misc ---> LV1    -fstype=ext4   :LABEL=LVM1
+---------------------------------------------------------------------------------------------------------------
+samba 계정은 hedgehog계정(만들기만 하자) (인증레벨 share)   /mnt/LV2 는 라벨 LVM2 로 해서 자동마운트 하기
+ [smb_share]
+        comment = Samba_Pub
+        path = /mnt/LV2/smb_share   <=========================/mnt/LV2 는 /etc/fstab설정
+        public = yes
+        writable = yes             validusers = hedgehog
+---------------------------------------------------------------------------------------------------------------
+★★★★★(autofs로 설정한 디바이스는 nfs로 사용할수가 없다.)★★★★★ ---> 모순이다
+/export/sdb/home/master(계정)/notice(dir) <======계정 환경 자동 생성  ****홈디렉토리 권한 755로 되야 nfs공유됨....***
+**nfs설정
+/export/sdb/home/master/notice	192.168.1.0 C Class 대역만 허용,관리자권한X(기본값), 모든사용자 O(기본값) 읽기(기본값)만 가능
+---------------------------------------------------------------------------------------------------------------	
+***모든 서비스는 자동실행**** = ntsysv
+***init 3에서 작업*********** = /etc/inittab
+ftp설정 => 디렉토리 제한 , /export/sdb/home/master 홈디렉토리는 기본 755설정으로 할것
+ssh설정 => root권한으로 로그인 X , hedgehog계정만 su 사용가능
+** Client 설정========================================================================================================
+autofs 설정		
+autofs 전용 디렉토리 => /hedgehognfs 	/etc/auto.hedgehog <===설정파일
+/etc/auto.hedgehog설정내용 => nfs_share	-rw,intr	192.168.1.10:/export/sdb/home/master/notice
+---------------------------------------------------------------------------------------------------------------
+추가 계정 nfs1 nfs2 nfs3 생성하고 계정추가시에 기본적으로 /hedgehognfs/nfs_share가 심볼릭 링크된 notice파일을 생성하도록 설정
+				(/etc/skel 에 직접주기) ln -s /hedgehognfs/nfs_share /etc/skel/notice
+---------------------------------------------------------------------------------------------------------------
+**내용확인 POINT**
+SERVER에 있는 master 계정이 ~master/notice에 파일 및 내용을 ftp로 업로드 할경우
+Client에 있는 모든 계정 notice디렉토리에 내용이 공유되록 설정
+
+
+
+
+
+
+
+
+
+===========================================
+서버
+umount /dev/sr0 --> cdrom 날아감
+df -Th
+autofs는 깔려있고 데몬이 돌아가고 있음
+정지 오케이 뜨니까
+vi /etc/autofs.conf
+38번
+browse mode yes
+vi /etc/auto.master
+7
+걍나오기
+vi /etc/auto.misc
+걍 나오기
+/etc/rc.d/init.d/autofs restart
+df -Th
+cdrom 없다
+cd /misc
+df -Th
+없다 
+ll
+cd cd
+df -Th
+마운트 됨 /misc/cd
+cd
+pwd
+/etc/rc.d/init.d/autofs restart
+df -Th
+마운트 풀림
+
+
+***autofs의 개념 : 24시간 마운트가 아니라 필요할 때 접근하기만 하면 마운트하는 자동 마운트개념
+
+
+
+--------------------------------------------------------------------
+
+
+3번
+
+ntysysv --> 확인용
+
+vi /etc/autofs.conf
+
+vi /etc/auto.master
+
+
+
+nmb알려주는거
+smb자원공유하는거
+
+
+
+
+
+
+
+
+
+
+
+
