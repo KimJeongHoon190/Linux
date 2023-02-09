@@ -1,0 +1,44 @@
+https://itdexter.tistory.com/321 --> 참고 자료
+--------------------------------------------------------------------
+DNS 구축순서
+                                                                                                               168.126.63.1 --> 한국 통신 KT          8.8.8.8  -->  dns google public server
+1. /etc/hosts	// 쿼리시 로컬에서 처음 보는 파일 =DNS 역할
+2. /etc/host.conf	//DNS 쿼리 순서 정하는 파일  
+3. /etc/resolv.conf	//랜카드 파일에 추가시 자동 추가됨
+4. 패키지 확인 
+	BIND 패키지 => Unix, Linux 에서 사용하도록 개발한 DNS패키지
+	rpm -ivh --force bind*
+	yum -y install bind*
+5. /etc/named.conf	// DNS 환경설정 파일
+6. /etc/named.rfc1912.zones	//Domain 설정 및 정방향 역방향 환경설정
+7. 6.x version 이상	cd /var/named 
+   5.8 version 에서	cd /var/named/chroot/var/named
+	에서 	zone 파일과 rev 파일 생성
+8. cp named.localhost hedgehog.zone
+9. cp hedgehog.zone hedgehog.rev
+10. chmod 660 hedgehog*
+    chown .named hedgehog*
+11. /etc/rc.d/init.d/named restart
+12. system-config-firewall 가서 DNS 체크 // 방화벽 열기
+13. netstat -lntup |grep named
+14. nslookup 확인 
+
+
+
+
+
+server/client 둘 다 똑같이 세팅 = vi /etc/sysconfig/network-scripts/ifcfg-eth0
+DNS1=192.168.111.10
+DNS2=192.168.111.2
+DNS3=168.126.63.1
+
+
+/etc/rc.d/init.d/network restart
+cat -n /etc/resolv.conf 가셔서 3줄 뜨는 거 확인
+
+반대로 데비안 계열은 직접 vi /etc/resolv.conf에 가서 직접 수정해야함
+
+
+
+
+
