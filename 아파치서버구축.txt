@@ -1,0 +1,388 @@
+** apache  웹서버  ≠ 윈도우 = IIS(Internet Information Service)                    telnet,ssh,ftp --> 연결 유지형(로그인)       웹서버 --> 비연결 유지형(안로그인)    네이버,구글 이런데 일정시간 지나면 안됨
+server side scripts language (동적 웹서버)                                                         계속 연결함
+PHP
+클라	=>	서버	=> 웹파일 실행 => 실행결과를 클라이언트                                                                                             
+
+client side scripts language (정적 웹서버) = Hyper Text Transfer Protocol = HTTP   ----> 밑에 것이 서버의 부하가 훨씬 적다.
+HTML
+클라	=>	서버	==> 웹파일	=> 클라이언트에서 실행
+=======================================================================
+서버시장조사
+netcraft.com
+===========================================================================
+chkconfig(ntsysv의고급버전)    => 런레벨별로 서비스 자동실행(업그레이드버전)(모든런레벨에모든서비스)                           ntsysv : 런레벨 5일 때만 부팅 시 데몬 자동 시작    ????????데몬 시작하고 활성화하고 다른가? 같은말이다. 예약 개념                                          
+[root@kgitbank named]# chkconfig| grep httpd
+httpd           0:해제  1:해제  2:해제  3:해제  4:해제  5:해제  6:해제
+[root@kgitbank named]# ntsysv                                                                           fqdn                             httpd --> 80번 포트
+[root@kgitbank named]#  chkconfig| grep httpd
+httpd           0:해제  1:해제  2:해제  3:해제  4:해제  5:활성  6:해제  --->   이게 활성화 표시 되있어도 활성화 된 게 아니다. ntsysv는 부팅해야된다. 그냥 활성화 예약 표시라고 생각해
+[root@kgitbank named]# chkconfig httpd on
+[root@kgitbank named]# chkconfig |grep httpd
+httpd           0:해제  1:해제  2:활성  3:활성  4:활성  5:활성  6:해제                                                            chkconfig --level 3 httpd on(off)   ---> 레벨 3의 httpd를 켜거나 꺼라
+[root@kgitbank named]# chkconfig httpd off                                                                                     chkconfig --level 35 httpd on(off)   --->레벨 3,5 둘다  켜거나 꺼라
+[root@kgitbank named]# chkconfig |grep httpd                                                                                 chkconfig httpd on  --> 모든 레벨 다켜라  ---> 2,3,4,5 다 켜짐(0,1,6은 무쓸모)
+httpd           0:해제  1:해제  2:해제  3:해제  4:해제  5:해제  6:해제                                                         chkconfig |grep httpd ---> httpd가 어떤 레벨에서 켜져있고 꺼져있는지 확인(옵션 안 썼을 때)
+[root@kgitbank named]# chkconfig --level 35 httpd on
+[root@kgitbank named]# chkconfig |grep httpd
+httpd           0:해제  1:해제  2:해제  3:활성  4:해제  5:활성  6:해제
+[root@kgitbank named]#
+ntsysv : 부팅레벨에 서비스 자동실행
+
+
+[root@kgitbank xinetd.d]# ntsysv
+[root@kgitbank xinetd.d]# chkconfig |grep httpd
+httpd           0:해제  1:해제  2:해제  3:해제  4:해제  5:활성  6:해제
+
+이거 연구
+
+
+
+
+============================================================================
+설정파일: /etc/httpd/conf/httpd.conf
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★                               host 집주인
+##Section 1: Global Environment   (시스템 환경)                                               hosting = 집주인 역할 =- 누가오면 손님이 오면 웹파일을 던져줌
+                                                                                                                우선순위 = index
+                                                                                                       1. documentRoot = 클라이언트 종류에 상관없이 하나의 공통 웹파일만 던져줌
+44행 ServerTokens OS                                                                                                위치 /var/www/html/index.html    ex)naver
+	서버 HTTP 응답 헤더를 설정, 오류문등 서버 메시지에 출력되는             2. userdir   = 계정 호스팅 = 계정마다 각자의 호스팅
+	서버에 대한 정보 설정                                                                                   ~user1/public_html/index.html          701            403오류 permissions deny                          
+ 
+	ServerTokens 값들                                                                                       ~user2/public_html/index.html        701
+	Full		아파치 서버 버전,운영체제,모듈 정보등을 모두 출력        3. alias 호스팅 = 경로 단축 호스팅
+	OS		아파치 서버 버전과 운영체제 정보만을 출력                     /alias/a/b/c/index.html     =  /kjh
+	Minor		아파치 서버의 하위 버전까지 출력                                   접속할 때 url에  ---> www.kgitbank.com/kjh
+	Min		아파치 서버의 모든 정보만을 출력
+	Major		아파치 서버의 주 버전 정보만을 출력
+	prod		아파치 서버의 정보만을 보여줌
+----------------------------------------------------------------------
+47행 ServerRoot = 최상위라는 뜻
+	아파치가 정상적으로 동작하기 위해 필요한 여러 파일들 
+	(웹 서버 설정파일,로그파일,바이너리 파일,모듈들이 존재하는 디렉토리)
+	의 위치를 설정
+	아파치 웹 서버 프로그램을 소스로 설치할 경우 설치 옵션에 따라 
+	서버루트 위치는 달라지게 됨
+	ex)ServerRoot "/etc/httpd" 
+--------------------------------------------------------------------------
+60 행  PidFile 
+	프로세스 ID 파일
+	아파치 웹서버가 실행 될때 PID를 기록하고자 하는 파일을 지정
+	경로명이 run/httpd.pid 이므로 /etc/httpd/run/httpd.pid 를 생성
+	★함부로 지우지 말라★
+---------------------------------------------------------------------------
+70 행 Timeout 60 = 실전에서는 5~15초 정도 해주는것이 좋다
+	시간 제한
+	클라이언트의 요청을 받고 응답해주는 시간
+	서버의 요청이 많은 경우에는 이 시간을 적게 설정하는 것이 좋다
+--------------------------------------------------------------------------
+73 행 KeepAlive 
+	지속적인 접속 허용
+	한번 연결된 세션을 유지할 것인가를 결정하는 지시자
+	접속된 상태에서 여러 번의 요청을 허용할 수 있음
+	on 으로 설정 시 요청에 대한 처리속도 향상
+	허나 기본값은 off 이다 // 사용자가 많아 질때는 off로 하는게 좋다
+79 행 MaxkeepAliveReqests
+	최대 접속 허용 횟수
+86 행 KeepAliveTimeout
+	다음 요청에 대한 대기 시간
+	동일한 클라이언트가 지속적인 접속으로 다음요청을 위해 기다리는 시간 설정
+	설정된 시간 동안 요청이 없을 경우 접속을 해제 시킴
+92 행 Server-Pool-Size
+	서버 프로세스 수
+	아파치 2.x에서는 다중처리모듈(MPMs멀티프로세스모듈즈)라는 교체 할 수 있는 동기화 모듈 지원
+	worker prefork 모듈 지원, 이중 한개의 모듈 선택
+	  └ 안정성 떨어짐,여러개의 다수 프로세스 지원, 확장성의 최적화
+	rpm을 통해 설치시 prefork MPM 방식으로 지원
+	------------------------------------------
+	worker // 높은 확장성이 필요한 사이트에 사용
+	prefork // 안정성과 오래된 소프트웨어와의 호환성이 필요한 사이트에 사용
+-------------------------------------------------------------------------------
+★★★128 행 ★★★
+	Listen 80
+	아파치 서버를 특정 IP 주소와 포트에 대해서 연결할 수 있도록 설정
+    135	#Listen 12.34.56.78:80 // 해당 IP 에서 80 포트로 웹서버를 열겠다
+    136 Listen 80		// 80포트를 모두 수렴하겠다         ---> 기본값  일반호스팅
+	Listen 192.168.1.10:8080 //보안강화,트래픽 분산 	 ---> 일반 호스팅과 충돌의 방지하기위해 표트 열어줌
+------------------------------------------------------------
+139 행 Dynamic Shared Object (DSO) Support
+	아파치 웹서버는 관리자가 모듈들을 선택하여 서버에 포함할 기능을
+	결정 할 수 있는 모듈화된 프로그램
+	아파치 컴파일 시 httpd 실행 파일에 정적으로 모듈을 컴파일
+	모듈을 httpd 실행파일과 분리하여 동적 공유 객체(DSO)로 컴파일
+=========================================================================
+$Server-Pool Size Regulation (MPM specific)
+
+multi process module
+
+prefork 복사프로세스방식 (process 방식)   --> 기본값
+부하가 높음
+속도는 느림
+확장성 떨어짐
+호환성이 뛰어남
+안정적
+
+worker	쓰레드(thead)방식 
+부하가 낮음
+잔에러가 많음
+속도는 빠름
+확장성 높음
+호환성이 떨어진다
+
+★$포트설정
+
+변경전
+    135 #Listen 12.34.56.78:80  <==호스트지정:포트지정
+    136 Listen 80
+
+변경후
+    135 #Listen 12.34.56.78:80
+    136 Listen 80 < ===기본값
+    137 Listen 192.168.1.10:8080 <==virtualhost or 보안페이지
+
+$모듈
+# Example:
+    149 # LoadModule foo_module modules/mod_foo.so
+	   모듈선언  [모듈설명]  [모듈위치] => /etc/httpd/modules/mod_foo.so
+ 
+***보통보듈은 .so로 끝난다***
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+
+ ### Section 2: 'Main' server configuration  (가장중요)
+
+**virtual 호스트 설정시 무시됨**
+
+
+  263 ServerAdmin root@localhost	관리자메일주소
+  
+
+★ 서버네임
+   DNS에서 설정된 도메인중 아파치가 사용할 이름지정
+   277 #ServerName www.example.com:80	
+					
+   278 ServerName www.kgitbank.com:80
+
+★★ 주요 웹문서 ★★  (첫번쨰 호스팅 DocumentRoot)
+ 294 #DocumentRoot "/var/www/html"
+ 295 DocumentRoot "/home/kgitbank/html"
+
+ 
+★ 디렉토리 옵션
+   305 <Directory />  			<==== "/"부터 옵션 시작
+    306     Options FollowSymLinks  	<====심볼릭 링크 허용
+    307     #AllowOverride None		<====모듈적용    
+    308     AllowOverride all 		<====과적하기= 덮어쓰기
+    309 </Directory>   			<===="/"부터 옵션 끝
+
+
+
+317 <Directory "/var/www/html">		<==== 지정디렉토리부터 옵션 시작
+    Options Indexes FollowSymLinks	<====목록보기,심볼릭링크허용
+    AllowOverride None			<====모듈적용
+    Order allow,deny			<====정책여부(허가/거부)
+    Allow from all			<====호스트지정
+</Directory>				<==== 지정디렉토리부터 옵션 끝
+
+
+★★ 계정 호스팅 ★★  (두번째 호스팅 UserDir)
+364 <IfModule mod_userdir.c>
+  
+    370     UserDir disabled		<===홈디렉토리호스팅제한
+    371     UserDir enabled  kgitbank	<===홈디렉토리 호스팅 활성
+ 
+    378     #UserDir public_html
+    379     UserDir public_html		<===홈디렉토리 호스팅 지정dir (상대경로)
+    380					    ~/public_html
+						/export/sdb (절대경로)
+						=> /export/sdb/kgitbank/index.html
+						=> /export/sdb/*/test  : 사용자디렉토리만들기 귀찮을때
+
+★★ 경로단축 호스팅 ★★  (세번째 호스팅 Alias)
+
+2 alias   /mupama "/alias/a/b/c"
+
+***보통 DocumentRoot보다 상위디렉토리는 호스팅어려움***
+*** alias는 DocumentRoot보다 상위디렉토리/긴이름 단축 호스팅가능***
+
+
+★웹문서 추가/우선순위지정	index.html
+
+ 409 #DirectoryIndex index.html index.html.var
+ 410 DirectoryIndex index.html index.html.var kgitbank.kgitbank
+
+★보안페이지 설정파일지정 (네번째 호스팅)
+  417 AccessFileName .htaccess
+
+(AllowOverride All/auth_config등 옵션이있을때만 유효) 
+
+
+###실습###
+[root@kgitbank home]# mkdir -p /home/kgitbank/html/admin
+[root@kgitbank home]# cd /home/kgitbank/html/admin
+[root@kgitbank admin]# vi .htaccess
+[root@kgitbank admin]# cat .htaccess
+authname        kgitbank-auth
+authtype        basic
+authuserfile    /etc/httpd/pw/kgitbank
+require         valid-user
+[root@kgitbank admin]# mkdir -p /etc/httpd/pw   
+[root@kgitbank admin]# htpasswd -mc /etc/httpd/pw/kgitbank kgitbank  <==비번설정
+New password:
+Re-type new password:
+Adding password for user kgitbank
+[root@kgitbank admin]# /etc/rc.d/init.d/httpd restart
+httpd 를 정지 중:                                          [  OK  ]
+httpd (을)를 시작 중:                                      [  OK  ]
+[root@kgitbank admin]# cat > /home/kgitbank/html/admin/index.html
+Admin
+^C
+[root@kgitbank admin]#
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+### Section 3: Virtual Hosts
+
+  1011 #NameVirtualHost *:80
+   1012 NameVirtualHost 192.168.1.10:8080   <====virtualhost사용 
+						호스트:포트지정
+**기본포트와 겹칠경우 DocumentRoot가 무시되어버림**
+
+$ 설정내용
+   1019 <VirtualHost 192.168.1.10:8080>
+   1020     ServerAdmin root@kgitbank.com
+   1021     DocumentRoot /vir
+   1022     ServerName vir.kgitbank.com
+   1023 </VirtualHost>
+   1024 <VirtualHost 192.168.1.10:8080>
+   1025     ServerAdmin root@kgitbank.com
+   1026     DocumentRoot /home/kgitbank/html/admin
+   1027     ServerName ad.kgitbank.com
+   1028 </VirtualHost>
+
+$Dns설정
+$TTL 3H
+@       IN      SOA     ns.kgitbank.com.   root.kgitbank.com. (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+        IN      NS      ns.kgitbank.com.
+        IN      A       192.168.1.10
+
+ns      IN      A       192.168.1.10
+www     IN      A       192.168.1.10
+ftp     IN      A       192.168.1.20
+vir     IN      A       192.168.1.10
+ad      IN      A       192.168.1.10
+
+$TTL 3H
+@       IN      SOA     ns.kgitbank.com.   root.kgitbank.com. (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+        IN      NS      ns.kgitbank.com.
+        IN      A       192.168.1.10
+
+10      IN      PTR     ns.kgitbank.com.
+10      IN      PTR     www.kgitbank.com.
+20      IN      PTR     ftp.kgitbank.com.
+10      IN      PTR     vir.kgitbank.com.
+10      IN      PTR     ad.kgitbank.com.
+
+##############################웹서버 기본##############################
+로그위치 (/etc/httpd/logs/error_log)
+
+492 ErrorLog logs/error_log
+
+$error_log
+403번	forbidden 권한문제
+404번   notfound  파일없음
+
+로그레벨 (경고)
+
+  499 LogLevel warn
+
+접속로그
+
+ 521 #CustomLog logs/access_log common
+
+$access_log
+
+================================서버 모니터링===========================
+
+    930 ExtendedStatus On   	<====모니터링 사용시 꼭 준다
+    931 <Location /s-s>		<====서버상태확인
+    932     SetHandler server-status
+    933     Order deny,allow
+    934     Deny from all
+    935     Allow 192.168.1.10
+    936 </Location>
+    937 <Location /s-i>		<====서버모듈정보
+    938     SetHandler server-info
+    939     Order deny,allow
+    940     Allow from all
+    941 </Location>
+
+
+
+
+
+-----------------------------------------------------------
+웬만하면 이런 것들은 건들지말고 내비둬
+
+44행 서버 토큰스 os == 정보를 줄 레벨을 정함
+
+47행 서버루트 == 주디렉터리          dns는 /var/named    ftp는 /etc/vsftpd ....  등등   httpd ==> /etc/httpd
+
+
+65행  세션 아이디 관련
+
+70행 타임아웃=60     ----> 유저가 들어오는 시간을 60초로 제한 ---> 웹서버는 비연결 유지형이니까
+
+76행 keep alive off ---> 유지 안시켜줌
+
+86행
+
+
+--------------------------------------------------------------------------논리적 분할을 왜 하는가 ---> for efficiency
+
+
+워커                vs                 프리포크
+
+병렬                                     직렬
+스레드방식                         프로세스방식
+속도빠르다 (스레드많음)            속도 느림
+ 대용량 못함(부하낮음)             대용량 가능
+호환성 별로                      호환성 가능       
+
+            장단점이 다 있다
+
+
+
+
+136번 yy p
+listen 192.168.1.10:8080
+
+
+나가서 데몬돌리기 httpd restat
+vi /etc/httpd...... 메인파일
+263번
+yy p
+serveradmin  kgitbank@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
