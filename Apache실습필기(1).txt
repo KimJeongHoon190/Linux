@@ -1,0 +1,501 @@
+이번실습 전제 조건 : DNS 다 세팅되어있어야함  ---> 저번에 DNS 문제 풀이 그대로 다 한 상태
+
+
+서버 >>
+
+포트열기
+chkconfig |grep named
+chkconfig --level 5 named on
+                        httpd
+chkconfig |grep named
+                    httpd
+/etc/rc.d/init.d/named restart
+                   httpd
+nestat -lntup |grep named
+                       httpd
+
+
+vi /etc/httpd/conf/httpd.conf
+294
+documentroot "/var/www/html" 
+
+ls -l /var/www/html
+vi /var/www/html/index.html  ---> 있던 파일이 아니라 내가 지금 파일(index.html) 생성하는 것  --->  다지우라고 한 건 그 전에 실습한 거 남아있어서
+
+그리고 적기
+This is DocumentRoot Hosting    아무거나 적어
+Web Page = /var/www/html/index.html  ---> 이거 httpd.conf에서 :sp /var/www/html/index.html로 화면분할 열고 수정해도 됨
+                    ---> 한국어로 적어도 상관없다. 유니코드니까
+wq
+
+클라이언트에서   파이어폭스 열고
+      www.hedgehog.com 치기
+
+아까 적은게 나온다.
+--------------------------------------------------------------------------------------------------
+계정 호스팅 >>
+
+vi /etc/httpd/conf/httpd.conf
+
+370
+yy p
+UserDir enabled user1 user2
+
+377
+UserDir public_html
+
+저장나가기
+
+user1 user2 생성 :
+
+cp -r /etc/skel /etc/skel2       -----> 어떻게하든 유저들 홈디렉터리 하위에 public_html을 만들면 된다,
+cd /etc/skel2
+mkdir public_html
+
+
+useradd -mk /etc/skel2 user1
+                           2
+passwd user1,2 
+
+
+user1,2 둘다 public_html 있으면 됨
+
+vi ~user1/public_html/index.html  ---> 이걸 만들어서 입력하기
+        2
+This is UserDir Hosting
+Web page = ~user1/public_html/index.html
+                2
+
+
+ex)
+이 호스팅은 UserDir 호스팅입니다
+웹페이지의 경로는 ~user2/public_html/index.html
+
+
+/etc/rc.d/init.d/httpd restart
+
+클라이언트
+
+www.hedgehog.com/~user2
+forbidden  --> 403 오류! (권한이 없다)
+
+웹페이지는 무조건 익명으로 들어간다. other권한 필요
+--->
+서버 돌아가서
+chmod 701 ~user2   ---> 700->701   --- other가 x(접근) 할 수 있게
+
+다시 클라이언트에서 접속
+이제 됨
+
+------------------------------------------------------------------------------------------
+
+
+경로 단축 호스팅 >>
+
+서버
+
+vi /etc/httpd/conf/httpd.conf
+379번
+
+alias /mupama "/alias/a/b/c"        
+        줄임         실제
+
+저장나가기
+
+mkdir -p /alias/a/b/c && cat > /alias/a/b/c/index.html
+This is Alias Hosting
+Web Page = /alias/a/b/c/index.html     아무렇게나 적어도 상관없디
+
+저장
+/etc/rc.d/init.d/httpd restart
+
+
+클라이언트 가서
+탭하나 더 열고
+www.hedgehog.com/mupama
+된다
+
+***alias는 제3의 경로에 항상 만들어라 
+
+--------------------------------------------------------------------------
+
+
+보안페이지 설정파일지정 >>  일반호스팅 + 보안
+
+디폴트값으로 보안모드가 꺼져있다.
+AllowOverride None --> 이게 기본값
+              All  --> 이렇게 바꿔
+데몬돌리기
+
+
+-----------------------------------------------------------------------------
+
+우선순위지정
+410 줄   순위를 정해놓는다. 1,2 번이 없으면 3번으로 연결
+yy p             
+DirectoryIndex 123.html   index.html      index.html.var
+                새치기
+
+/etc/rc.d/init.d/httpd restart
+cd /var/www/html
+pwd
+ll
+--> index.html
+
+cat > 123.html
+asdl;fkjsdjf;alsdfsdf
+
+wq
+
+
+클라이언트가서
+www.hedgehog.com 있는데 가서 F5누르기 새로고침
+
+
+
+-----------------------------------------------------------
+
+Security Web Hosting >>
+
+
+vi /etc/httpd/conf/httpd.conf 홈 파일
+415번 줄
+찾기
+/AllowOverride
+
+7개 정도 있다
+3개는 주석처리
+4개를 바꿔
+
+:%s/AllowOverride None/AllowOverride All/g
+
+다 바뀜
+
+찾아서 제대로 되었는지 확인
+
+
+/etc/rc.d/init.d/named restart
+
+이제 실습 가자
+
+
+mkdir -p ~hedgehog/html/admin
+ls -ld ~hedgehog/html/admin
+cd ~hedgehog/html/admin
+pwd
+vi .htaccess  하이퍼텍스트액세스
+적어라
+authname    hedgehog-auth
+authtype    basic
+authuserfile   /etc/httpd/pw/hedgehog
+require	valid-user
+
+저장나가기
+
+mkdir -p /etc/httpd/pw
+
+지금 만들 암호는 웹페이지용
+
+htpasswd -mc /etc/httpd/pw/hedgehog --> 암호화파일     hedgehog
+1234
+1234
+
+cat -n /etc/httpd/pw/hedgehog
+암호화되어있다
+
+
+/etc/rc.d/init.d/httpd restart
+
+vi ~hedgehog/html/admin/index.html
+
+This is Security Web Hosting
+Web Page = /home/hedgehog/html/admin/index.html
+
+이 보안웹호스팅은 입장하실 때 ID:hedgehog / PW:1234를 입력하시오
+그리고 이 호스팅은 virtual Hosting과 함께 검사를 합니다.
+
+저장나가기
+
+
+ls -ld ~hedgehog
+chmod 701 ~hedgehog/     접근 가능하게 권한설정
+
+     --->  방금 한 이 실습은 바로 다음 virtual hosting(5번째 호스팅실습)
+               실습까지 완료하고 결과 화면을 확인할 수 있다.
+
+--------------------------------------------------------------------
+
+5번째 호스팅 >>
+
+vi /etc/httpd/conf/httpd.conf
+979번
+Virtual Hosting 되어있네
+
+
+내려가기
+996
+
+
+137번 가기
+8080 이란 포트를 열었었네??   Listen 192.168.111.10:8080
+
+
+996번
+yy p  주석처리하고
+NameVirtualHost 192.168.1.10:8080
+
+내려가
+
+*:80 모든 아이피에 80번 포트를 쓰겠다는 뜻
+
+1010번
+7yy
+
+p
+G                                          
+visual block 주석 한번에 지우기                                                d$ --> command mode에서
+
+<VirtualHost 192.168.1.10:8080>
+ServerAdmin root@hedgehog.com
+DocumentRoot /vir
+ServerName vir.hedgehog.com  --> virtual hosting이란 뜻
+
+                           (ServerName -->내가 파이어폭스 url란에다 칠 것을 의미한다.)
+
+1017 
+5yy
+p
+<VirtualHost 192.168.111.10:8080>
+ServerAdmin root@hedgehog.com
+DocumentRoot /home/hedgehog/html/admin
+ServerName ad.hedgehog.com             ---> 이거 본 파일 가서 다시 자세히 보기   $설정내용 .....
+                   |-->관리자용
+
+
+
+mkdir /vir
+
+vi /vir/index.html
+This is First virtual hosting 
+web page = /vir/index.html
+저장나가기
+
+
+/etc/rc.d/init.d/httpd restart
+
+
+
+DNS 들어가기
+
+vi /var/named/hedgehog.zone
+
+
+두 줄 추가
+vir IN A 192.168.1.10
+ad IN A 192.168.1.10
+
+
+
+vi /var/named/hedgehog.rev
+
+
+두 줄 추가
+10 IN PTR vir.hedgehog.com.
+10 IN PTR ad.hedgehog.com.
+
+
+/etc/rc.d/init.d/named restart
+
+확인사살
+nslookup
+
+vir.hedgehog.com
+ad.hedgehog.com
+잘나오는지 확인
+
+
+
+클라이언트에서도 nslookup 확인하기
+
+
+
+
+클라이언트 파이어폭스가서
+vir.hedgehog.com
+다큐먼트 호스팅이 뜬다.  잉???
+
+vir.hedgehog.com:8080  다시 쳐 
+연결실패
+방화벽 안 뚫어서
+
+서버
+방화벽들어가기
+8080 tcp 추가
+
+
+연결실패된 데 들어가서 F5 새로고침
+들어가짐
+
+
+
+
+ad.hedgehog.com:8080
+인증요구함
+
+ID hedgehog
+PW 1234
+
+성공
+
+
+끝
+
+
+
+
+** 역방향 파일에 hedgehog 밑에 google 만들잖아 
+그럼 아이피만 쳤을 땐 hedgehog로 가? 아님 google로 가?
+절차지향이니까     위에 적은 순서대로 실행
+hedgehog로 감
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
